@@ -9,7 +9,7 @@ Esta macro define dinamicamente o nome do schema para cada modelo no dbt.
 ### 🎯 Uso no `dbt_project.yml`:
 ```yaml
 models:
-  my_project:
+  streambr:
     marts:
       +schema: marts  # Será aplicado automaticamente na macro
 ```
