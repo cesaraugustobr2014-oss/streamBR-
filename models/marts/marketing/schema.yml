@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: dim_clientes_analitico
+    description: "Dimensão analítica com dados do assinante e métricas de consumo"
+    columns:
+      - name: customer_id
+        description: "Identificador do cliente"
+      - name: customer_name
+        description: "Nome do cliente"
+      - name: customer_email
+        description: "Email do cliente"
+      - name: customer_phone
+        description: "Telefone do cliente"
+      - name: customer_address
+        description: "Endereço do cliente"
+      - name: total_gasto
+        description: "Total gasto pelo cliente"
+      - name: total_compras
+        description: "Número total de compras realizadas"
+      - name: diversidade_produtos
+        description: "Quantidade de produtos distintos comprados"
+      - name: total_estornos
+        description: "Quantidade de compras estornadas"
+
+  - name: dim_produtos_analitico
+    description: "Dimensão analítica com dados dos planos de assinatura e indicadores de desempenho"
+    columns:
+      - name: product_id
+        description: "Identificador do plano"
+      - name: name_product
+        description: "Nome do plano de assinatura"
+      - name: price_product
+        description: "Preço mensal do plano"
+      - name: total_vendido
+        description: "Total de meses vendidos do plano"
+      - name: total_faturado
+        description: "Receita total faturada com o plano"
+      - name: total_estornado
+        description: "Valor total estornado nas vendas do plano"
+      - name: total_estornos
+        description: "Número de estornos relacionados ao plano"

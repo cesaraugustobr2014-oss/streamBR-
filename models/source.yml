@@ -1,0 +1,83 @@
+version: 2
+
+sources:
+  - name: landing
+    database: streambr
+    schema: landing
+    tables:
+      - name: clientes
+        description: "Tabela de assinantes da plataforma de streaming"
+        columns:
+          - name: customer_id
+            description: "Identificador único do cliente"
+
+          - name: name
+            description: "Nome do cliente"
+
+          - name: address
+            description: "Endereço do cliente"
+
+          - name: phone
+            description: "Número de telefone do cliente"
+            
+          - name: email
+            description: "E-mail do cliente"
+
+      - name: produtos
+        description: "Tabela de planos de assinatura disponíveis na plataforma"
+        columns:
+          - name: product_id
+            description: "Identificador único do produto"
+
+          - name: name
+            description: "Nome do plano de assinatura"
+
+          - name: price
+            description: "Preço mensal do plano"
+
+      - name: vendas
+        description: "Tabela de vendas da plataforma, onde cada registro é a compra de um plano de assinatura"
+        columns:
+          - name: purchase_id
+            description: "Identificador único da compra"
+
+          - name: customer_id
+            description: "Identificador do cliente"
+
+          - name: product_id
+            description: "Identificador do produto"
+
+          - name: date
+            description: "Data da compra do plano"
+
+          - name: quantity
+            description: "Quantidade de meses do plano contratados na compra"
+
+          - name: total_price
+            description: "Preço total da compra"
+
+          - name: payment_method
+            description: "Método de pagamento utilizado"
+
+            
+      - name: estorno
+        description: "Registros de estornos de cobranças da plataforma, contendo informações do cliente, plano, data, motivo e valor do reembolso, gerada através do seed"
+        columns:
+          - name: purchase_id
+            description: "Identificador único da compra estornada"
+
+          - name: customer_id
+            description: "Identificador do cliente que realizou a compra"
+
+          - name: product_id
+            description: "Identificador do plano que foi estornado"
+
+          - name: refund_date
+            description: "Data em que o estorno foi realizado"
+
+          - name: refund_reason
+            description: "Motivo do estorno informado pelo cliente"
+
+          - name: refund_amount
+            description: "Valor monetário reembolsado ao cliente"
+  

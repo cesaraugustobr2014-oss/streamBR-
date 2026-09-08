@@ -1,0 +1,80 @@
+version: 2
+
+models:
+  - name: int_clientes
+    description: "Tabela intermediária consolidando dados de clientes e compras."
+    columns:
+      - name: customer_id
+        description: "Identificador único do cliente."
+      - name: customer_name
+        description: "Nome completo do cliente."
+      - name: customer_address
+        description: "Endereço do cliente."
+      - name: customer_phone
+        description: "Número de telefone do cliente."
+      - name: customer_email
+        description: "E-mail do cliente."
+      - name: total_gasto
+        description: "Total gasto pelo cliente."
+      - name: total_compras
+        description: "Número total de compras realizadas pelo cliente."
+
+  - name: int_produtos
+    description: "Tabela intermediária consolidando os planos de assinatura com suas métricas de venda."
+    columns:
+      - name: product_id
+        description: "Identificador único do plano."
+      - name: name_product
+        description: "Nome do plano de assinatura."
+      - name: price_product
+        description: "Preço mensal do plano."
+      - name: total_vendido
+        description: "Total de meses vendidos do plano."
+      - name: total_faturado
+        description: "Receita total faturada com o plano."
+
+  - name: int_vendas
+    description: "Tabela intermediária consolidando vendas de planos e estornos."
+    columns:
+      - name: purchase_id
+        description: "Identificador único da venda."
+      - name: customer_id
+        description: "Identificador do cliente."
+      - name: product_id
+        description: "Identificador do plano."
+      - name: purchase_date
+        description: "Data da compra do plano."
+      - name: quantity
+        description: "Quantidade de meses do plano contratados."
+      - name: total_price
+        description: "Valor total pago na compra."
+      - name: payment_method
+        description: "Método de pagamento utilizado."
+      - name: valor_estornado
+        description: "Valor estornado na compra."
+      - name: refund_reason
+        description: "Motivo do estorno, caso tenha ocorrido."
+
+  - name: int_estorno  
+    description: "Registros de estornos de cobranças com informações de cliente, plano, data e motivo"
+    columns:
+      - name: purchase_id
+        description: "Identificador da compra estornada"
+
+      - name: customer_id
+        description: "Identificador do cliente"
+
+      - name: product_id
+        description: "Identificador do plano estornado"
+
+
+      - name: refund_date
+        description: "Data do estorno"
+
+      - name: refund_reason
+        description: "Motivo do estorno"
+
+
+      - name: refund_amount
+        description: "Valor reembolsado"
+  

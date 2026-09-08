@@ -1,0 +1,5 @@
+purchase_id,customer_id,product_id,refund_date,refund_reason,refund_amount
+101,12,3,2024-02-15,"Serviço indisponível",150.00
+102,45,7,2024-03-01,"Outro",200.50
+103,78,2,2024-03-10,"Cobrança indevida",180.75
+104,33,9,2024-03-12,"Cobrança duplicada",90.00
