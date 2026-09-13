@@ -2,10 +2,6 @@ WITH vendas AS (
     SELECT * FROM {{ ref('int_vendas') }}
 ),
 
-estornos AS (
-    SELECT * FROM {{ ref('int_estorno') }}
-),
-
 clientes AS (
     SELECT * FROM {{ ref('int_clientes') }}
 ),
@@ -25,10 +21,9 @@ SELECT
     v.quantity,
     v.total_price,
     v.payment_method,
-    COALESCE(e.refund_amount, 0) AS valor_estornado,
-    e.refund_reason,
-    (v.total_price - COALESCE(e.refund_amount, 0)) AS receita_liquida
+    v.valor_estornado,
+    v.refund_reason,
+    (v.total_price - v.valor_estornado) AS receita_liquida
 FROM vendas v
-LEFT JOIN estornos e ON v.purchase_id = e.purchase_id
 LEFT JOIN clientes c ON v.customer_id = c.customer_id
 LEFT JOIN produtos p ON v.product_id = p.product_id

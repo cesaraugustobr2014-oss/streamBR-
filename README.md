@@ -1,121 +1,151 @@
-# 📺 Projeto dbt - StreamBR
+# StreamBR - Analytics Engineering com dbt & PostgreSQL
 
-Este projeto modela os dados de uma plataforma fictícia de streaming chamada **StreamBR**, utilizando o **Data Build Tool (dbt)** para transformar, documentar e testar os dados de forma estruturada e analítica.
+Projeto de Analytics Engineering e Modelagem Dimensional para a plataforma de streaming **StreamBR**, utilizando **dbt (data build tool)**, **PostgreSQL (AWS RDS)** e **dbt Cloud**.
 
----
-
-
-## 🎯 Objetivo do Projeto
-
-O objetivo deste projeto é construir um **Data Warehouse analítico**, organizado em camadas conforme as boas práticas recomendadas pelo **dbt**. A arquitetura proposta permitirá análises confiáveis e estruturadas sobre **assinantes, planos de assinatura, vendas e estornos**.
-
-Além disso, o projeto oferece uma visão completa **End-to-End (E2E)** — desde a modelagem e transformação dos dados até o deploy e agendamento no ambiente em nuvem.
-
-
----
-## 📁 Fontes de dados
-
-Na pasta `scripts-sql`, estão disponíveis os scripts responsáveis pela criação das tabelas que serão utilizadas ao longo deste projeto.
-
-> **Observação:** A tabela de estornos será materializada a partir dos dados presentes na pasta `seed`.
-
-
-### 💡 Modelo de negócio
-
-Na StreamBR os assinantes contratam planos de assinatura (Básico, Padrão, Premium, Família, Esportes, entre outros). Cada venda representa a contratação de um plano pré-pago por uma quantidade de meses, e o valor pago pode variar conforme promoções do período. Os estornos de cobrança (cobrança indevida, serviço indisponível, cobrança duplicada etc.) são registrados à parte e carregados no data warehouse via seed.
+O projeto cobre o ciclo completo de engenharia analítica: ingestão de dados brutos relacionais, saneamento e tipagem em camada bronze, enriquecimento intermediário em camada silver, e criação de modelos analíticos finais (Star Schema) prontos para consumo por áreas de negócio (Finanças e Marketing), com testes automatizados e governança de dados.
 
 ---
 
+## Arquitetura de Dados (Medallion / dbt Layers)
 
-## 🧬 Diagrama Relacional das Tabelas de Origem
-
-![](scripts-sql/diagrama.png)
-
-
-## 🧱 Boas Práticas por Camada no dbt
-
-## 🔹 Camada `staging`
-
-| Prática recomendada                       | Descrição                                                                 |
-|-------------------------------------------|---------------------------------------------------------------------------|
-| Prefixo `stg_` nos modelos                | Nomeie os modelos como `stg_<nome_tabela>`                               |
-| Seleção explícita de colunas              | Evite `SELECT *`; selecione e renomeie as colunas manualmente            |
-| Padronização de nomes                     | Use `snake_case` e nomes consistentes como `order_id`, `customer_id`     |
-| Limpeza básica                            | Remova duplicatas, trate nulos e converta tipos quando necessário        |
-| Sem regras de negócio                     | Deixe regras complexas para camadas `intermediate` ou `marts`            |
-| Uso de `source()`                         | Sempre referencie dados brutos com `source('fonte', 'tabela')`           |
-| Organização por fonte                     | Estruture os modelos em subpastas por origem dentro de `models/staging/` |
-| Inclusão de testes                        | Aplique testes de unicidade, nulos e integridade                         |
-| Documentação dos modelos                  | Use arquivos `.yml` para descrever campos e tabelas                      |
-
----
-
-## 🔸 Camada `intermediate`
-
-| Prática recomendada                         | Descrição                                                                 |
-|---------------------------------------------|---------------------------------------------------------------------------|
-| Prefixo `int_` nos modelos                  | Nomeie os modelos como `int_<entidade>`                                   |
-| Combinação de dados                         | Faça joins, merges e enriquecimentos entre várias tabelas                 |
-| Criação de entidades derivadas              | Crie entidades intermediárias como `orders_enriched`, `active_customers` |
-| Separação de responsabilidades              | Mantenha uma transformação por modelo sempre que possível                 |
-| Simplificação para os marts                 | Prepare modelos limpos e organizados para uso direto nos marts            |
-| Reutilização e manutenção                   | Centralize lógicas complexas para evitar duplicidade em modelos finais    |
-| Uso de `ref()` para `stg_`                  | Sempre referencie os modelos `staging` via `ref('stg_xxx')`               |
+```
+[ PostgreSQL / Landing ]
+  clientes, produtos, vendas, estorno (seed)
+             │
+             ▼
+[ Camada Staging (Bronze) ] ── (Materialização: View)
+  stg_clientes, stg_produtos, stg_vendas, stg_estorno
+  • Validação e conversão estrita de tipos
+  • Padronização em snake_case e renomeação explícita de colunas
+  • Nenhuma regra de negócio aplicada
+             │
+             ▼
+[ Camada Intermediate (Silver) ] ── (Materialização: View)
+  int_vendas, int_clientes, int_produtos, int_estorno
+  • Joins e tratamento de estornos de cobrança
+  • Métricas intermediárias e consolidações pré-agregadas
+             │
+             ▼
+[ Camada Marts (Gold) ] ── (Materialização: Table)
+  ├── Finance:   fct_vendas (Fato detalhada com receita líquida e motivo de reembolso)
+  └── Marketing: dim_clientes_analitico, dim_produtos_analitico
+      • Modelos dimensionais prontos para BI, Self-service e Reporting
+```
 
 ---
 
-## 🟢 Camada `marts`
+## Modelagem e Regras de Negócio
 
-| Prática recomendada                       | Descrição                                                                  |
-|-------------------------------------------|----------------------------------------------------------------------------|
-| Prefixo `fct_`, `dim_`, `report_`         | Use `fct_` para fatos, `dim_` para dimensões, `report_` para relatórios    |
-| Modelos prontos para o negócio            | Cada modelo deve ser útil diretamente para o analista ou consumidor final |
-| Cálculos e KPIs finais                    | Faça agregações, métricas e cálculos de negócio                           |
-| Uso de `ref()` para `int_` e `dim_`       | Referencie modelos intermediários ou dimensões derivadas                  |
-| Nomeação clara e orientada ao domínio     | Nomeie modelos conforme as entidades do negócio                           |
-| Organização por áreas de negócio          | Separe os modelos por temas: vendas, finanças, marketing etc.             |
-| Modelos versionáveis                      | Mantenha versões (ex: `fct_sales_v1`) se precisar evoluir sem quebrar     |
+### 1. Modelo de Negócio da Plataforma
+- **Assinaturas e Planos:** Assinantes contratam planos pré-pagos (Básico, Padrão, Premium, Família, Esportes, etc.).
+- **Vendas (`vendas`):** Cada registro representa uma assinatura ou renovação. A coluna `quantity` indica a quantidade de meses contratados, e `total_price` representa o valor final faturado após possíveis cupons e descontos sazonais.
+- **Estornos (`estorno`):** Ingeridos via `seed` para simular devoluções de cobrança (cobrança duplicada, insatisfação, cancelamento ou serviço indisponível).
 
----
+### 2. Principais Modelos de Consumo
 
-## 🧩 Comparativo entre Camadas
-
-| Aspecto                       | staging                         | intermediate                          | marts                                 |
-|------------------------------|----------------------------------|----------------------------------------|----------------------------------------|
-| Prefixo                      | `stg_`                           | `int_`                                 | `fct_`, `dim_`, `report_`              |
-| Fonte de dados               | `source()`                       | `ref(stg_)`                            | `ref(int_)`, `ref(dim_)`              |
-| Tipo de transformação        | Limpeza e padronização           | Joins, enriquecimentos, lógicas        | Métricas, agregações, KPIs            |
-| Complexidade da lógica       | Baixa                            | Média                                   | Alta                                   |
-| Público alvo                 | Interno (engenharia)             | Interno (engenharia/analytics)         | Final (análise/negócio)                |
-| Objetivo principal           | Padronizar dados brutos          | Preparar dados relacionais e reutilizáveis | Responder perguntas de negócio     |
-| Organização recomendada      | Por fonte                        | Por entidade                           | Por área de negócio                    |
-
-[Fonte - dbtLabs](https://docs.getdbt.com/best-practices/how-we-structure/1-guide-overview)
+| Modelo | Tipo | Granularidade | Finalidade |
+|---|---|---|---|
+| `fct_vendas` | Fato | 1 linha por transação de compra | Análise de faturamento bruto, estornos e cálculo de **receita líquida** (`total_price - valor_estornado`). |
+| `dim_clientes_analitico` | Dimensão | 1 linha por cliente | Indicadores de Customer Lifetime Value (LTV), total de compras, diversidade de planos e estornos por cliente. |
+| `dim_produtos_analitico` | Dimensão | 1 linha por plano | Métricas de conversão de planos, total de meses vendidos, faturamento acumulado e taxa de estorno por produto. |
 
 ---
 
-## ✅ Pré-requisitos
+## Qualidade e Testes de Dados
 
-Para executar este projeto, você precisará ter o seguinte ambiente configurado:
-
-- 🐍 **Python 3.8+** – [Download](https://www.python.org/downloads/)
-- 🐘 **PostgreSQL via RDS (AWS)** ou outro banco compatível
-- 💻 **DBeaver** (cliente SQL opcional para explorar dados) – [Download](https://dbeaver.io/download/)
-- ☁️ **Conta gratuita no dbt Cloud** – [Criar conta](https://cloud.getdbt.com/signup/)
-- 🛠️ **Git** – necessário para versionamento e integração com o dbt Cloud - [Download](https://git-scm.com/downloads)
-- 🐙 **Conta no GitHub** – necessária para hospedar o repositório do projeto e integrar ao dbt Cloud [Criar conta](https://github.com/join)
-- 📦 **Pacote `dbt-postgres` versão 1.9 ou superior**  
-  Instale com o comando:  
-  ```bash
-  pip install dbt-postgres
-  ```
-
-## 🚀 Deploy
-
-O deploy é realizado por meio do **dbt Cloud (plano gratuito)**, utilizando uma instância **RDS na AWS** também dentro da camada **Free Tier**. Essa abordagem permite orquestrar e agendar execuções dos modelos dbt de forma prática, sem custos adicionais no ambiente de desenvolvimento.
+Os modelos contam com testes declarativos configurados nos arquivos `schema.yml`:
+- **Unicidade e Nulos:** Chaves primárias testadas com `unique` e `not_null` em todas as camadas (`purchase_id`, `customer_id`, `product_id`).
+- **Integridade Referencial:** Testes de `relationships` assegurando que vendas apontem para clientes e produtos válidos.
+- **Valores Permitidos:** Teste de `accepted_values` nos motivos de estorno (`refund_reason`).
 
 ---
 
-## 📺 Sobre o Projeto
+## Estrutura do Repositório
 
-A StreamBR é uma plataforma de streaming fictícia. O projeto foi desenvolvido como estudo prático durante a pós-graduação em **Engenharia de Dados e Inteligência Artificial** e cobre o ciclo completo: carga dos dados brutos no PostgreSQL, transformação em camadas, testes de qualidade, documentação e orquestração no dbt Cloud.
+```
+├── dbt_project.yml          # Configuração global, tags, schemas e materializações
+├── models/
+│   ├── source.yml           # Declaração das fontes brutas (landing)
+│   ├── staging/             # Camada Bronze (stg_*)
+│   │   ├── schema.yml
+│   │   ├── stg_clientes.sql
+│   │   ├── stg_produtos.sql
+│   │   ├── stg_vendas.sql
+│   │   └── stg_estorno.sql
+│   ├── intermediate/        # Camada Silver (int_*)
+│   │   ├── schema.yml
+│   │   ├── int_vendas.sql
+│   │   ├── int_clientes.sql
+│   │   └── int_produtos.sql
+│   └── marts/               # Camada Gold (fct_* / dim_*)
+│       ├── finance/
+│       │   ├── schema.yml
+│       │   └── fct_vendas.sql
+│       └── marketing/
+│           ├── schema.yml
+│           ├── dim_clientes_analitico.sql
+│           └── dim_produtos_analitico.sql
+├── seeds/
+│   └── estorno.csv          # Base estática de estornos
+├── scripts-sql/             # DDL e carga inicial do banco relacional
+│   ├── clientes.sql
+│   ├── produtos.sql
+│   └── vendas.sql
+└── macros/                  # Custom macros de nomenclatura de schemas
+```
+
+---
+
+## Como Executar o Projeto
+
+### Pré-requisitos
+- Python 3.9+
+- PostgreSQL configurado (local ou cloud)
+- Pacote `dbt-postgres` (v1.9+)
+
+### 1. Instalação das Dependências
+```bash
+pip install dbt-postgres
+```
+
+### 2. Configurar o Perfil de Conexão (`profiles.yml`)
+Certifique-se de configurar o profile `streambr` em `~/.dbt/profiles.yml`:
+```yaml
+streambr:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: <SEU_HOST>
+      user: <SEU_USUARIO>
+      password: <SUA_SENHA>
+      port: 5432
+      dbname: streambr
+      schema: public
+      threads: 4
+```
+
+### 3. Execução dos Modelos e Testes
+```bash
+# Testar conectividade com o banco
+dbt debug
+
+# Carregar seeds (tabela de estornos)
+dbt seed
+
+# Compilar e executar todos os modelos
+dbt run
+
+# Executar testes de qualidade
+dbt test
+
+# Gerar e visualizar a documentação interativa
+dbt docs generate
+dbt docs serve
+```
+
+---
+
+## Licença
+
+Distribuído sob a licença MIT.
